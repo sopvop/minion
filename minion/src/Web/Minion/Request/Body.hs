@@ -49,12 +49,14 @@ instance (ContentType ct, Decode ct a, DecodeBody cts a) => DecodeBody (ct ': ct
     | Just _ <- Http.matchAccept (Nel.toList $ media @ct) contentType =
         liftIO body
           >>= either
-            (const $ throwM $ makeError Http.status400 "Failed to parse body")
+            (throwM . makeError Http.status400 . mkBody)
             (pure . ReqBody)
             . decode @ct @a
     | otherwise = do
         ReqBody a :: ReqBody cts a <- decodeBody makeError contentType body
         pure $ ReqBody a
+    where
+      mkBody msg = Text.Encode.Lazy.encodeUtf8 $ "Failed to parse body: " <> Text.Lazy.fromStrict msg
 
 class Decode ct a where
   decode :: Bytes.Lazy.ByteString -> Either Text.Text a
