@@ -65,10 +65,11 @@ parseCt :: forall ct cts a m. (MonadIO m, MonadThrow m, Decode ct a) => MakeErro
 parseCt makeError body =
   liftIO body
     >>= either
-      (const $ throwM $ makeError Http.status400 "Failed to parse body")
+      (throwM . makeError Http.status400 . mkBody)
       (pure . ReqBody)
       . decode @ct @a
-
+    where
+      mkBody msg = Text.Encode.Lazy.encodeUtf8 $ "Failed to parse body: " <> Text.Lazy.fromStrict msg
 class Decode ct a where
   decode :: Bytes.Lazy.ByteString -> Either Text.Text a
 
